@@ -139,7 +139,7 @@ is_take_stmt (pTHX_ OP *stmt)
 static OP *
 myparse_args_gather (pTHX_ GV *namegv, SV *topicalise, U32 *flagsp)
 {
-  OP *topicaliser, *topblkop, *curblkop, *initop;
+  OP *topicaliser, *topblkop, *curblkop, *initop, *assignop;
   int blk_floor;
 
   PERL_UNUSED_ARG(namegv);
@@ -154,9 +154,13 @@ myparse_args_gather (pTHX_ GV *namegv, SV *topicalise, U32 *flagsp)
   demand_unichar('{', 0);
   blk_floor = Perl_block_start(aTHX_ 1);
 
-  initop = newOP(OP_PADSV, (OPpLVAL_INTRO<<8));
-  initop->op_targ = pad_add_my_scalar_pvn("$Gather::Once::current_topic",
-                                          sizeof("$Gather::Once::current_topic")-1);
+  if (SvTRUE(topicalise)) {
+    initop = newOP(OP_PADSV, (OPpLVAL_INTRO<<8));
+    initop->op_targ = pad_add_my_scalar_pvn("$Gather::Once::current_topic",
+                                            sizeof("$Gather::Once::current_topic")-1);
+
+    assignop = newASSIGNOP(0, initop, 0, topicaliser);
+  }
 
   topblkop = curblkop = parse_fullstmt(0);
   lex_read_space(0);
@@ -175,7 +179,9 @@ myparse_args_gather (pTHX_ GV *namegv, SV *topicalise, U32 *flagsp)
 
   demand_unichar('}', DEMAND_IMMEDIATE);
 
-  topblkop = op_prepend_elem(OP_LINESEQ, initop, topblkop);
+  if (SvTRUE(topicalise))
+    topblkop = op_prepend_elem(OP_LINESEQ, assignop, topblkop);
+
   topblkop = op_scope(Perl_block_end(aTHX_ blk_floor, topblkop));
 
   //return newGIVENOP(SvTRUE(topicalise) ? topicaliser : newOP(OP_NULL, 0),
