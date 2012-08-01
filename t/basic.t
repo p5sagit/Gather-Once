@@ -3,11 +3,11 @@ use warnings;
 use Test::More 0.89;
 
 use Gather::Once
-    block => 'with',
-    take  => 'iff',
+    block      => 'with',
+    take       => 'iff',
     topicalise => 1,
     predicate  => sub {
-        warn "$_[0] == $_[1]";
+        diag explain \@_;
         $_[0] == $_[1];
     };
 
@@ -15,9 +15,29 @@ my $n = 42;
 
 my @ret = with ($n) {
     warn 42;
+    iff (23) { 42 };
     iff (42) { 23 };
     warn 23;
     42;
+};
+
+diag explain \@ret;
+
+done_testing;
+
+__END__
+
+my $pred = sub {};
+my @ret___ = do {
+    warn 42;
+    ($pred->($n, 23))
+        ? do { 42 }
+            : ($pred->($n, 42))
+                ? do { 23 }
+                    : do {
+                        warn 23;
+                        42;
+                    };
 };
 
 diag explain \@ret;
@@ -37,6 +57,10 @@ iff_ (42) { };
 
 my @ret_ = moo {
     iff_ (42) { 1, 2, 3 };
+};
+
+my @ret__ = do {
+    $pred->(42) ? do { 1, 2, 3 } : ()
 };
 
 diag explain \@ret_;
