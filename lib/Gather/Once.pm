@@ -15,7 +15,6 @@ sub import {
     my ($class, %args) = @_;
     my $caller = caller;
 
-    use Data::Dump 'pp';
     my $gather = sub { croak "$args{block} called as a function" };
     my $take   = sub { croak "$args{take} called as a function"  };
 
